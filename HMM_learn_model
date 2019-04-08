@@ -1,0 +1,164 @@
+import itertools
+import sys
+import glob
+import os
+import string
+import codecs
+
+listt = []
+trans = dict()
+
+path = sys.argv[1]
+
+import io
+
+f = codecs.open(path, "r", encoding="UTF-8").readlines()
+
+wwt = {}
+emis = dict()
+count = 0
+emission = dict()
+counttransition = dict()
+countemit = dict()
+sett = set()
+
+wordtagnew = {}
+wordtag = dict()
+# sw=['FS','FC','FB','FF']
+for i in f:
+
+    l = i.strip().split(" ")
+
+    start = '<start>'
+
+    if (start in counttransition):
+
+        counttransition[start] += 1
+    else:
+        counttransition[start] = 1
+
+    if (start in countemit):
+
+        countemit[start] += 1
+    else:
+        countemit[start] = 1
+
+    for j in l:
+
+        # w,t=j.strip().split("/")
+        t = j.split("/")[-1]
+        w = j.split("/")[-2]
+
+        sett.add(start)
+        sett.add(t)
+
+        if (t in counttransition):
+
+            counttransition[t] += 1
+        else:
+            counttransition[t] = 1
+
+        ######################### Transition counts #############
+
+        ############################################  Count for transition divisor and uniq #####################
+
+        temptrans = (start, t)
+        ############################################################## t1,t2:count ################
+        # w = w.lower()
+
+        if (temptrans in trans):
+            trans[temptrans] += int(1)
+        else:
+            trans[temptrans] = 1
+
+        ############# Emission counts for divisor and uniq ###########################################################
+
+        tempemi = (w, t)
+
+        if (t in countemit):
+
+            countemit[t] += 1
+        else:
+            countemit[t] = 1
+
+        #####################################################  w,t:count  ########################
+        if (tempemi in emis):
+            emis[tempemi] += int(1)
+        else:
+
+            emis[tempemi] = 1
+
+        if w not in wordtagnew:
+            wordtagnew[w] = set()
+
+        wordtagnew[w].add(t)
+
+        start = t
+
+        # Emssion dictionary
+        # if(t not in sw):
+
+        ################################################## dictionary for emiision tag1 { w1:3,w2:5}###################
+        if t in emission:
+            if w in emission[t]:
+                emission[t][w] += 1
+            else:
+                emission[t][w] = 1
+
+
+
+
+        else:
+            em = dict()
+            em[w] = 1
+            emission[t] = em
+        ########################################
+        if w in wordtag:
+            if w in wordtag[w]:
+                wordtag[w][t] += 1
+            else:
+                wordtag[w][t] = 1
+
+
+
+
+        else:
+            temp = dict()
+            temp[t] = 1
+            wordtag[w] = temp
+            k = wordtag[w][t]
+
+efile = open("hmmmodellet.txt", "w")
+
+eprob = dict()
+for key in emis:
+    prob = emis[key] / float(countemit[key[1]])
+    eprob[key] = prob
+
+    prob = 0
+tprob = dict()
+
+for index in itertools.combinations_with_replacement(sett, 2):
+    if (index not in trans) and (index[1] != '<start>'):
+        trans[index] = 0
+    if (tuple([index[1], index[0]]) not in trans) and (index[0] != '<start>'):
+        trans[tuple([index[1], index[0]])] = 0
+
+prob2 = 0
+for key1 in trans:
+    prob2 = ((trans[key1] + 1) / (float(len(counttransition) - 1) + counttransition[str(key1[0])]))
+    tprob[key1] = prob2
+
+efile.write(str(eprob))
+efile.write("\n")
+
+efile.write(str(tprob))
+efile.write("\n")
+
+efile.write(str(wordtag))
+efile.write("\n")
+
+efile.close()
+
+
+
